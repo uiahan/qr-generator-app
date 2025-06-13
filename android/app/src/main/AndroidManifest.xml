@@ -1,14 +1,14 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
-    <!-- Tambahkan di sini -->
-    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
-    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"
+        android:maxSdkVersion="28" />
+    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
 
     <application
-        android:label="QR Generator"
+        android:label="QR Code Maker"
         android:name="${applicationName}"
-        android:icon="@mipmap/ic_launcher"
-        android:requestLegacyExternalStorage="true">
+        android:requestLegacyExternalStorage="true"
+        android:icon="@mipmap/ic_launcher">
 
         <activity
             android:name=".MainActivity"

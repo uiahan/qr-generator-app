@@ -4,6 +4,7 @@ import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:qr_flutter/qr_flutter.dart';
+import 'package:gallery_saver_updated/gallery_saver.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 void main() {
@@ -16,7 +17,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'QR Generator',
+      title: 'QR Code Make',
       themeMode: ThemeMode.system,
       darkTheme: ThemeData.dark(),
       theme: ThemeData(
@@ -43,11 +44,13 @@ class _QRGeneratorPageState extends State<QRGeneratorPage> {
   String qrText = '';
 
   Future<void> _saveQrToGallery() async {
-    final status = await Permission.storage.request();
-    if (!status.isGranted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Izin akses penyimpanan ditolak')),
-      );
+    final status = await Permission.photos.request(); // iOS
+    final storageStatus = await Permission.storage.request(); // Android
+
+    if (!status.isGranted && !storageStatus.isGranted) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Izin penyimpanan ditolak')));
       return;
     }
 
@@ -55,25 +58,29 @@ class _QRGeneratorPageState extends State<QRGeneratorPage> {
       RenderRepaintBoundary boundary =
           _qrKey.currentContext!.findRenderObject() as RenderRepaintBoundary;
       ui.Image image = await boundary.toImage(pixelRatio: 3.0);
-      ByteData? byteData = await image.toByteData(format: ui.ImageByteFormat.png);
+      ByteData? byteData = await image.toByteData(
+        format: ui.ImageByteFormat.png,
+      );
       Uint8List pngBytes = byteData!.buffer.asUint8List();
 
-      final directory = Directory('/storage/emulated/0/DCIM/QRFlutter');
-      if (!(await directory.exists())) {
-        await directory.create(recursive: true);
-      }
-
-      final filePath = '${directory.path}/qr_${DateTime.now().millisecondsSinceEpoch}.png';
+      final tempDir = await Directory.systemTemp.createTemp();
+      final filePath =
+          '${tempDir.path}/qr_${DateTime.now().millisecondsSinceEpoch}.png';
       final file = File(filePath);
       await file.writeAsBytes(pngBytes);
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('QR Code berhasil disimpan ke galeri!')),
-      );
+      final success = await GallerySaver.saveImage(file.path);
+      if (success == true) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('QR Code berhasil disimpan ke galeri!')),
+        );
+      } else {
+        throw 'Gagal menyimpan';
+      }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Gagal menyimpan: $e')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Gagal menyimpan: $e')));
     }
   }
 
@@ -95,7 +102,7 @@ class _QRGeneratorPageState extends State<QRGeneratorPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('QR Code Generator'),
+        title: const Text('QR Code Maker'),
         centerTitle: true,
         elevation: 4,
       ),
@@ -116,9 +123,12 @@ class _QRGeneratorPageState extends State<QRGeneratorPage> {
             const SizedBox(height: 16),
             ElevatedButton.icon(
               onPressed: _generateQRCode,
-              label: const Text('Generate QR Code'),
+              label: const Text('Make QR Code'),
               style: ElevatedButton.styleFrom(
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 24,
+                  vertical: 14,
+                ),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(10),
                 ),
@@ -154,9 +164,12 @@ class _QRGeneratorPageState extends State<QRGeneratorPage> {
                     onPressed: _saveQrToGallery,
                     label: const Text('Simpan ke Galeri'),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.green,
+                      backgroundColor: Colors.deepPurple,
                       foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 24,
+                        vertical: 14,
+                      ),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(10),
                       ),
